@@ -1,3 +1,4 @@
+import * as path from 'path';
 import * as cdk from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
@@ -117,8 +118,8 @@ export class StratocoreStack extends cdk.Stack {
     });
 
     const lambdaFn = new lambda.DockerImageFunction(this, 'ApiLambda', {
-      code: lambda.DockerImageCode.fromEcr(repo, {
-        tagOrDigest: 'latest',
+      code: lambda.DockerImageCode.fromImageAsset(path.join(__dirname, '../../app'), {
+        entrypoint: ['python', '-m', 'awslambdaric'],
         cmd: ['main.handler'],
       }),
       memorySize: 512,

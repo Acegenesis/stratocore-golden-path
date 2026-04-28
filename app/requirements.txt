@@ -3,3 +3,4 @@ uvicorn[standard]
 mangum
 boto3
 python-multipart
+awslambdaric
