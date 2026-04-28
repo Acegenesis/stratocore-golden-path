@@ -9,7 +9,7 @@ app = FastAPI()
 
 @app.get("/")
 def root():
-    return {"Hi there"}
+    return {"Hi there CI/CD works well"}
 
 @app.get("/health")
 def health():
