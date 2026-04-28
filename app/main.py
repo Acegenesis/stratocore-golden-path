@@ -7,6 +7,9 @@ from mangum import Mangum
 
 app = FastAPI()
 
+@app.get("/")
+def root():
+    return {"Hi there"}
 
 @app.get("/health")
 def health():
