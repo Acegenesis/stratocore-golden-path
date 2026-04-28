@@ -16,14 +16,16 @@ phases:
       - echo "Building Docker image..."
       - docker build -t stratocore-api app/
       - docker tag stratocore-api:latest ${ECR_URI}:latest
-      - docker tag stratocore-api:latest ${ECR_URI}:${CODEBUILD_BUILD_ID}
+      - IMAGE_TAG=$(echo $CODEBUILD_BUILD_ID | tr ':' '-')
+      - docker tag stratocore-api:latest ${ECR_URI}:${IMAGE_TAG}
 
   post_build:
     commands:
       - source /tmp/env.sh
+      - IMAGE_TAG=$(echo $CODEBUILD_BUILD_ID | tr ':' '-')
       - echo "Pushing images to ECR..."
       - docker push ${ECR_URI}:latest
-      - docker push ${ECR_URI}:${CODEBUILD_BUILD_ID}
+      - docker push ${ECR_URI}:${IMAGE_TAG}
       - echo "Deploying CDK stack..."
       - npm install -g aws-cdk ts-node typescript
       - cd infra && npm ci
