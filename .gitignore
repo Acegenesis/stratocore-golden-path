@@ -1,0 +1,8 @@
+infra/node_modules/
+infra/dist/
+__pycache__/
+*.pyc
+.env
+cdk.out/
+
+.vscode/

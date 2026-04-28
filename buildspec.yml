@@ -1,0 +1,30 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo "Logging in to Amazon ECR..."
+      - AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+      - REGION=${AWS_DEFAULT_REGION}
+      - ECR_URI=${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/stratocore-api
+      - printf "export AWS_ACCOUNT_ID=%s\nexport REGION=%s\nexport ECR_URI=%s\n" "$AWS_ACCOUNT_ID" "$REGION" "$ECR_URI" > /tmp/env.sh
+      - aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com
+
+  build:
+    commands:
+      - source /tmp/env.sh
+      - echo "Building Docker image..."
+      - docker build -t stratocore-api app/
+      - docker tag stratocore-api:latest ${ECR_URI}:latest
+      - docker tag stratocore-api:latest ${ECR_URI}:${CODEBUILD_BUILD_ID}
+
+  post_build:
+    commands:
+      - source /tmp/env.sh
+      - echo "Pushing images to ECR..."
+      - docker push ${ECR_URI}:latest
+      - docker push ${ECR_URI}:${CODEBUILD_BUILD_ID}
+      - echo "Deploying CDK stack..."
+      - npm install -g aws-cdk ts-node typescript
+      - cd infra && npm ci
+      - cdk deploy StratocoreStack --require-approval never
