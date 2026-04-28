@@ -127,7 +127,7 @@ Outputs will show:
 
 ### 4. First-time image push to ECR
 
-CDK creates the ECR repository in step 3. Now push the Docker image so ECS and Lambda can start:
+CDK creates the ECR repository in step 3. Push the Docker image so ECS and Lambda can start:
 
 ```bash
 aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com
@@ -137,7 +137,7 @@ docker tag stratocore-api:latest <EcrRepo_output>:latest
 docker push <EcrRepo_output>:latest
 ```
 
-After this push, ECS will automatically start the service (~2-3 min).
+After this push, ECS will start the service (~2-3 min). From this point, CI/CD handles all subsequent image builds and deploys automatically on every push to `main`.
 
 ### 5. Set up CI/CD (CodePipeline)
 
