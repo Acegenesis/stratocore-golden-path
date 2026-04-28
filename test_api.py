@@ -1,10 +1,3 @@
-"""
-Test suite for Stratocore API.
-Usage:
-    python test_api.py                          # tests Lambda (API Gateway)
-    python test_api.py --target alb             # tests ECS (ALB)
-    python test_api.py --url https://custom.url # tests custom URL
-"""
 import sys
 import tempfile
 import os

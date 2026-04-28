@@ -1,4 +1,4 @@
-# Stratocore — Golden Path: Python API on AWS
+# Stratocore - Golden Path: Python API on AWS
 
 Golden Path for deploying a FastAPI application on AWS using two compute strategies: containerized (ECS Fargate) and serverless (Lambda). Infrastructure defined as code with AWS CDK TypeScript. CI/CD via CodePipeline + CodeBuild.
 
@@ -39,9 +39,17 @@ graph TD
 
 ## Design Decisions
 
+### Why Two Compute Strategies?
+
+ECS Fargate handles long-running workloads with persistent connections. Lambda handles stateless, event-driven workloads with automatic scale-to-zero. Both use the same Docker image - a single CI/CD build serves both compute targets, keeping the pipeline simple.
+
+### Why API Gateway HTTP API (not REST API)?
+
+HTTP API is the newer generation: 70% cheaper and sufficient for proxying requests to Lambda. REST API adds features (caching, API keys, usage plans) not required here.
+
 ### Storage: Why S3?
 
-Local container storage is ephemeral — files are lost on container restart or redeployment. S3 provides durable, persistent object storage that survives container lifecycle events. The bucket name is injected as an environment variable (`BUCKET_NAME`) so the same code works in any environment.
+Local container storage is ephemeral - files are lost on container restart or redeployment. S3 provides durable, persistent object storage that survives container lifecycle events. The bucket name is injected as an environment variable (`BUCKET_NAME`) so the same code works in any environment.
 
 ### IAM Permissions
 
@@ -54,7 +62,7 @@ Least privilege principle applied throughout:
 
 | Option | Description | Verdict |
 |---|---|---|
-| **Lambda + API Gateway HTTP API + Mangum** | Mangum translates API Gateway events to ASGI. Same FastAPI code, no modifications. | ✅ **Chosen** — standard, well-documented, FastAPI-native |
+| **Lambda + API Gateway HTTP API + Mangum** | Mangum translates API Gateway events to ASGI. Same FastAPI code, no modifications. | ✅ **Chosen** - standard, well-documented, FastAPI-native |
 | Lambda Web Adapter (LWA) | Runs uvicorn inside Lambda using a custom runtime extension | ❌ Less transparent, more complex to debug |
 | Lambda + Function URL | Direct Lambda invocation without API Gateway | ❌ No throttling, no custom auth, fewer routing features |
 
@@ -66,14 +74,22 @@ handler = Mangum(app)  # used by Lambda
 # uvicorn.run() used by ECS
 ```
 
-**Why container image Lambda?** The same Docker image is used for both ECS Fargate and Lambda. Lambda overrides the container CMD to `main.handler` via CDK configuration. This means a single Docker build in CI/CD serves both compute targets — simpler pipeline, no separate packaging.
+**Why container image Lambda instead of zip?** A zip package would require a separate build step: packaging dependencies, managing layer size limits (250MB unzipped), and maintaining a separate artifact from ECS. With a container image, the same Docker image built for ECS is reused for Lambda - Lambda simply overrides the CMD to `main.handler`. One build, one artifact, no size limit issues (up to 10GB), unified CI/CD pipeline.
 
 ### Networking
 
-- ECS Fargate runs in **private subnets** — not reachable from the internet
+- ECS Fargate runs in **private subnets** - not reachable from the internet
 - Traffic flows: `Internet → ALB (public) → ECS (private)`
 - Security Groups enforce this strictly: ECS SG only accepts traffic from the ALB SG
 - NAT Gateway (1 AZ) allows ECS in private subnets to pull images from ECR
+
+### Production Improvements
+
+What would be added in a production environment:
+- **HTTPS on ALB** via ACM certificate + custom domain
+- **WAF** (Web Application Firewall) in front of ALB and API Gateway to block SQL injection, XSS, and DDoS
+- **VPC Endpoints** for ECR to avoid ECR traffic going through the NAT Gateway
+- **CodeBuild IAM role** scoped to `iam:PassRole` only instead of `IAMFullAccess`
 
 ---
 
@@ -120,10 +136,10 @@ npx cdk deploy StratocoreStack
 ```
 
 Outputs will show:
-- `AlbUrl` — ECS Fargate endpoint
-- `ApiGatewayUrl` — Lambda endpoint
-- `BucketName` — S3 bucket name
-- `EcrRepo` — ECR repository URI
+- `AlbUrl` - ECS Fargate endpoint
+- `ApiGatewayUrl` - Lambda endpoint
+- `BucketName` - S3 bucket name
+- `EcrRepo` - ECR repository URI
 
 ### 4. First-time image push to ECR
 
