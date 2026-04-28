@@ -16,6 +16,7 @@ graph TD
     APIGW --> Lambda[Lambda\ncontainer image]
     Lambda --> S3
 
+    GitHub -->|push to main| CodePipeline
     CodePipeline --> CodeBuild
     CodeBuild -->|docker push| ECR[ECR Repository]
     ECR -->|image| ECS
